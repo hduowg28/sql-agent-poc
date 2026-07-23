@@ -1,6 +1,6 @@
 import pandas as pd
 from sqlalchemy import text
-from database import engine
+from app.core.database import engine
 
 try: 
     df=pd.read_csv("data\Sample - Superstore.csv",

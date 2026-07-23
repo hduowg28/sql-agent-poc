@@ -16,6 +16,3 @@ agent = create_sql_agent(
     db=db,
     verbose=True
 )
-
-
-
