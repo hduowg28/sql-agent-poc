@@ -5,3 +5,4 @@ requirements.txt
 data_modeling_and_normalization_report.md
 test_schemas.sql
 task.md
+technical_design_document.md

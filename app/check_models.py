@@ -1,4 +1,5 @@
 import os
+# pyright: ignore [reportMissingImports]
 from dotenv import load_dotenv
 from google import genai
 

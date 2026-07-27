@@ -15,10 +15,6 @@ Hierarchy:
     └── ValidationException
 """
 
-
-# ---------------------------------------------------------------------------
-# Base Exception
-# ---------------------------------------------------------------------------
 class AppException(Exception):
     """Base exception cho mọi lỗi trong ứng dụng."""
 
@@ -32,10 +28,6 @@ class AppException(Exception):
             return f"{self.message} | Detail: {self.detail}"
         return self.message
 
-
-# ---------------------------------------------------------------------------
-# Database Exceptions
-# ---------------------------------------------------------------------------
 class DatabaseException(AppException):
     """Base exception cho mọi lỗi liên quan đến database."""
 
@@ -72,9 +64,6 @@ class DatabaseUploadError(DatabaseException):
         )
 
 
-# ---------------------------------------------------------------------------
-# Agent Exceptions
-# ---------------------------------------------------------------------------
 class AgentException(AppException):
     """Base exception cho mọi lỗi liên quan đến SQL Agent."""
 
@@ -100,9 +89,6 @@ class AgentTimeoutError(AgentException):
         )
 
 
-# ---------------------------------------------------------------------------
-# Validation Exceptions
-# ---------------------------------------------------------------------------
 class ValidationException(AppException):
     """Dữ liệu đầu vào không hợp lệ."""
 

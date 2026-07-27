@@ -3,7 +3,6 @@ app/services/chat_services.py
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Business Logic layer cho Chat endpoint.
 
-Thay đổi so với phiên bản cũ:
   - Nhận `Session` qua Dependency Injection thay vì import global
   - Không import `agent` trực tiếp → dùng `get_agent()` singleton
   - Thay HTTPException bằng Custom Exceptions (xử lý bởi Global Handler)
@@ -25,9 +24,6 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
 
-    # -----------------------------------------------------------------------
-    # Validation
-    # -----------------------------------------------------------------------
     @staticmethod
     def validate_question(question: str) -> str:
         """
@@ -50,9 +46,7 @@ class ChatService:
 
         return question
 
-    # -----------------------------------------------------------------------
-    # Agent Runner
-    # -----------------------------------------------------------------------
+    
     @staticmethod
     def run_agent(question: str) -> tuple[dict, float]:
         """
@@ -90,16 +84,43 @@ class ChatService:
     @staticmethod
     def format_response(result: dict, elapsed_ms: float) -> ChatResponse:
         """Chuyển output của Agent thành ChatResponse schema chuẩn."""
-        answer = result.get("output", "Không có kết quả.")
+        raw_output = result.get("output", "Không có kết quả.")
 
-        # Cố gắng trích xuất SQL từ intermediate_steps nếu có
+        # Xử lý đa dạng kiểu dữ liệu của raw_output (str, list[dict], dict)
+        if isinstance(raw_output, str):
+            answer = raw_output.strip()
+        elif isinstance(raw_output, list):
+            extracted_texts = []
+            for item in raw_output:
+                if isinstance(item, dict) and "text" in item:
+                    extracted_texts.append(str(item["text"]))
+                elif isinstance(item, str):
+                    extracted_texts.append(item)
+                else:
+                    extracted_texts.append(str(item))
+            answer = "\n".join(extracted_texts).strip() if extracted_texts else "Không có kết quả."
+        elif isinstance(raw_output, dict) and "text" in raw_output:
+            answer = str(raw_output["text"]).strip()
+        else:
+            answer = str(raw_output).strip()
+
+        # Trích xuất SQL từ intermediate_steps nếu có
         generated_sql: str | None = None
         intermediate = result.get("intermediate_steps", [])
         for action, _ in intermediate:
             tool_input = getattr(action, "tool_input", None)
-            if tool_input and isinstance(tool_input, str) and tool_input.strip().upper().startswith("SELECT"):
-                generated_sql = tool_input.strip()
-                break
+            sql_candidate: str | None = None
+
+            if isinstance(tool_input, str):
+                sql_candidate = tool_input
+            elif isinstance(tool_input, dict):
+                sql_candidate = tool_input.get("query") or tool_input.get("sql") or tool_input.get("sql_query")
+
+            if sql_candidate and isinstance(sql_candidate, str):
+                cleaned_candidate = sql_candidate.strip()
+                if cleaned_candidate.upper().startswith("SELECT"):
+                    generated_sql = cleaned_candidate
+                    break
 
         meta = ChatExecutionMeta(
             execution_time_ms=round(elapsed_ms, 2),

@@ -3,7 +3,6 @@ app/main.py
 ~~~~~~~~~~~
 FastAPI application entry point.
 
-Thay đổi so với phiên bản cũ:
   - Dùng `lifespan` context manager thay `@app.on_event` (deprecated)
   - Đăng ký Global Exception Handlers qua `register_exception_handlers()`
   - Kiểm tra DB connection khi startup (fail-fast)
@@ -32,9 +31,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Lifespan: startup / shutdown
-# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
@@ -42,7 +38,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     - startup  : kiểm tra DB, pre-warm Agent
     - shutdown : log thông báo dọn dẹp
     """
-    # --- Startup ---
     logger.info("=" * 55)
     logger.info(f"  SQL Agent POC  |  env={settings.app_env}")
     logger.info("=" * 55)
@@ -61,10 +56,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # --- Shutdown ---
     logger.info("[Shutdown] Đang tắt ứng dụng...")
 
-
-# ---------------------------------------------------------------------------
-# App factory
-# ---------------------------------------------------------------------------
 def create_app() -> FastAPI:
     """Tạo FastAPI instance với đầy đủ cấu hình."""
     application = FastAPI(
@@ -103,8 +94,4 @@ def create_app() -> FastAPI:
 
     return application
 
-
-# ---------------------------------------------------------------------------
-# Singleton app instance
-# ---------------------------------------------------------------------------
 app = create_app()

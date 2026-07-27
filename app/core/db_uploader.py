@@ -23,25 +23,16 @@ from app.models.customer import Customer
 from app.models.order import Order
 from app.models.product import Product
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 CSV_PATH = Path("data/Sample - Superstore.csv")
 BATCH_SIZE = 500   # Số bản ghi insert mỗi lần (tránh quá tải bộ nhớ)
 
 
-# ---------------------------------------------------------------------------
-# Extract
-# ---------------------------------------------------------------------------
 def extract(csv_path: Path) -> pd.DataFrame:
     """Đọc file CSV và chuẩn hóa tên cột."""
     logger.info(f"[Extract] Đọc file: {csv_path}")
@@ -57,9 +48,7 @@ def extract(csv_path: Path) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Transform
-# ---------------------------------------------------------------------------
+
 def transform(df: pd.DataFrame) -> tuple[list[dict], list[dict], list[dict]]:
     """
     Tách DataFrame thô thành 3 tập dữ liệu chuẩn hóa.
@@ -100,10 +89,6 @@ def transform(df: pd.DataFrame) -> tuple[list[dict], list[dict], list[dict]]:
     )
     return customers, products, orders
 
-
-# ---------------------------------------------------------------------------
-# Load helper
-# ---------------------------------------------------------------------------
 def _bulk_load(session: Session, model, records: list[dict], table_name: str) -> None:
     """
     Insert danh sách dict vào bảng tương ứng theo từng batch.
@@ -129,9 +114,6 @@ def _bulk_load(session: Session, model, records: list[dict], table_name: str) ->
         raise DatabaseUploadError(table=table_name, detail=str(exc)) from exc
 
 
-# ---------------------------------------------------------------------------
-# Load (orchestrator)
-# ---------------------------------------------------------------------------
 def load(
     customers: list[dict],
     products: list[dict],
@@ -154,10 +136,6 @@ def load(
         _bulk_load(session, Order, orders, "orders")
     logger.info("[Load] ETL Pipeline hoàn tất.")
 
-
-# ---------------------------------------------------------------------------
-# Main ETL Runner
-# ---------------------------------------------------------------------------
 def run_etl(csv_path: Path = CSV_PATH) -> None:
     """Chạy toàn bộ ETL Pipeline: Extract → Transform → Load."""
     logger.info("=" * 60)

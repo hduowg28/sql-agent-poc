@@ -13,9 +13,7 @@ from app.core.exceptions import SQLInjectionError
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Danh sách từ khoá bị cấm (DML + DDL nguy hiểm)
-# ---------------------------------------------------------------------------
+
 FORBIDDEN_KEYWORDS: list[str] = [
     # DML – ghi / xóa dữ liệu
     "INSERT",
@@ -54,9 +52,6 @@ _FORBIDDEN_PATTERN: re.Pattern = re.compile(
 )
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
 def validate_sql(sql: str) -> str:
     """
     Kiểm tra câu lệnh SQL có chứa từ khoá nguy hiểm hay không.

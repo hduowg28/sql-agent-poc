@@ -4,9 +4,6 @@ from typing import Generator
 from app.core.config import settings
 
 
-# ---------------------------------------------------------------------------
-# Singleton Engine
-# ---------------------------------------------------------------------------
 # Engine được tạo một lần duy nhất, tái sử dụng connection pool trong suốt
 # vòng đời ứng dụng. Mọi module chỉ import `engine` từ đây.
 engine = create_engine(
@@ -16,12 +13,9 @@ engine = create_engine(
     pool_timeout=settings.db_pool_timeout,
     pool_recycle=settings.db_pool_recycle,
     pool_pre_ping=settings.db_pool_pre_ping,
-    echo=settings.debug,   # Log SQL khi debug=True
+    echo=settings.debug, 
 )
 
-# ---------------------------------------------------------------------------
-# SessionLocal Factory
-# ---------------------------------------------------------------------------
 # autocommit=False  → Phải gọi commit() thủ công
 # autoflush=False   → Không tự flush khi query, kiểm soát tốt hơn
 # bind=engine       → Gắn session với engine đã tạo
@@ -31,10 +25,6 @@ SessionLocal = sessionmaker(
     autoflush=False,
 )
 
-
-# ---------------------------------------------------------------------------
-# Dependency: get_db
-# ---------------------------------------------------------------------------
 def get_db() -> Generator[Session, None, None]:
     """
     FastAPI dependency cung cấp database session theo từng request.
@@ -52,10 +42,6 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
-
-# ---------------------------------------------------------------------------
-# Health-check helper (dùng khi khởi động ứng dụng)
-# ---------------------------------------------------------------------------
 def verify_db_connection() -> None:
     """
     Kiểm tra kết nối database khi ứng dụng khởi động.

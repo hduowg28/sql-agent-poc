@@ -26,9 +26,6 @@ from app.core.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Helper: build JSON error body
-# ---------------------------------------------------------------------------
 def _error_response(
     status_code: int,
     error_type: str,
@@ -46,10 +43,6 @@ def _error_response(
         body["error"]["detail"] = detail
     return JSONResponse(status_code=status_code, content=body)
 
-
-# ---------------------------------------------------------------------------
-# Handlers
-# ---------------------------------------------------------------------------
 async def handle_sql_injection_error(request: Request, exc: SQLInjectionError) -> JSONResponse:
     logger.warning(
         f"[SecurityGuard] SQLInjectionError | path={request.url.path} "
@@ -157,10 +150,6 @@ async def handle_unhandled_exception(request: Request, exc: Exception) -> JSONRe
         message="Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.",
     )
 
-
-# ---------------------------------------------------------------------------
-# Registration helper
-# ---------------------------------------------------------------------------
 def register_exception_handlers(app: FastAPI) -> None:
     """
     Đăng ký toàn bộ exception handlers vào FastAPI app.

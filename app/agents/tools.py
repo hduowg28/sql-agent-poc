@@ -22,11 +22,7 @@ from app.core.exceptions import AgentTimeoutError, SQLInjectionError
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Timeout helper (cross-platform)
-# ---------------------------------------------------------------------------
 _DEFAULT_TIMEOUT_SECONDS = 30
-
 
 def _run_with_timeout(fn, *args, timeout: int = _DEFAULT_TIMEOUT_SECONDS, **kwargs) -> Any:
     """
@@ -57,10 +53,6 @@ def _run_with_timeout(fn, *args, timeout: int = _DEFAULT_TIMEOUT_SECONDS, **kwar
             except FuturesTimeout:
                 raise AgentTimeoutError(timeout_seconds=timeout)
 
-
-# ---------------------------------------------------------------------------
-# SafeSQLQueryTool
-# ---------------------------------------------------------------------------
 class SafeSQLQueryTool(BaseTool):
     """
     LangChain Tool thực thi SQL SELECT an toàn:
@@ -89,7 +81,7 @@ class SafeSQLQueryTool(BaseTool):
             safe_query = validate_sql(query)
         except SQLInjectionError as exc:
             logger.error(f"[SafeSQLQueryTool] SQL bị từ chối: {exc}")
-            return f"❌ Lỗi bảo mật: {exc.message}"
+            return f" Lỗi bảo mật: {exc.message}"
 
         # 2. Thực thi với timeout
         logger.info(f"[SafeSQLQueryTool] Thực thi query: {safe_query[:200]}")
@@ -106,8 +98,64 @@ class SafeSQLQueryTool(BaseTool):
             return f"⏱️ Lỗi timeout: Query vượt quá {self.timeout_seconds}s."
         except Exception as exc:
             logger.error(f"[SafeSQLQueryTool] Lỗi không xác định: {exc}")
-            return f"❌ Lỗi thực thi query: {exc}"
+            return f" Lỗi thực thi query: {exc}"
 
     async def _arun(self, query: str, **kwargs: Any) -> str:
-        """Async version – delegate về _run (đủ dùng cho POC)."""
+        """Async version – delegate về _run."""
         return self._run(query, **kwargs)
+
+
+class ListTablesTool(BaseTool):
+    """
+    LangChain Custom Tool liệt kê danh sách tất cả các bảng hiện có trong DB.
+    Thay thế cho sql_db_list_tables của SQLDatabaseToolkit.
+    """
+
+    name: str = "list_tables"
+    description: str = "Liệt kê danh sách tất cả các bảng hiện có trong cơ sở dữ liệu."
+    db: SQLDatabase = Field(exclude=True)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def _run(self, tool_input: str = "", **kwargs: Any) -> str:
+        try:
+            tables = self.db.get_usable_table_names()
+            return f"Các bảng hiện có trong cơ sở dữ liệu: {', '.join(tables)}"
+        except Exception as exc:
+            logger.error(f"[ListTablesTool] Lỗi khi lấy danh sách bảng: {exc}")
+            return f"Lỗi khi lấy danh sách bảng: {exc}"
+
+    async def _arun(self, tool_input: str = "", **kwargs: Any) -> str:
+        return self._run(tool_input, **kwargs)
+
+class GetTableSchemaTool(BaseTool):
+    """
+    LangChain Custom Tool lấy thông tin DDL schema và vài dòng mẫu của các bảng.
+    Thay thế cho sql_db_schema của SQLDatabaseToolkit.
+    """
+
+    name: str = "get_table_schema"
+    description: str = (
+        "Lấy cấu trúc schema, tên cột, kiểu dữ liệu và một vài dòng mẫu của các bảng. "
+        "Input: tên các bảng phân cách bằng dấu phẩy, ví dụ: 'customers, orders'."
+    )
+    db: SQLDatabase = Field(exclude=True)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def _run(self, table_names: str, **kwargs: Any) -> str:
+        if not table_names or not table_names.strip():
+            return " Vui lòng cung cấp tên các bảng cần xem schema (ví dụ: 'customers, orders')."
+
+        tables = [t.strip() for t in table_names.split(",") if t.strip()]
+        try:
+            schema_info = self.db.get_table_info(tables)
+            return schema_info
+        except Exception as exc:
+            logger.error(f"[GetTableSchemaTool] Lỗi khi lấy schema cho {table_names}: {exc}")
+            return f"Lỗi khi lấy schema: {exc}"
+
+    async def _arun(self, table_names: str, **kwargs: Any) -> str:
+        return self._run(table_names, **kwargs)
