@@ -1,23 +1,29 @@
 """
 app/services/chat_services.py
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Business Logic layer cho Chat endpoint.
+Business Logic layer cho Chat endpoint với LangGraph & Conversation History support.
 
-  - Nhận `Session` qua Dependency Injection thay vì import global
-  - Không import `agent` trực tiếp → dùng `get_agent()` singleton
-  - Thay HTTPException bằng Custom Exceptions (xử lý bởi Global Handler)
+  - Nhận `Session` qua Dependency Injection
+  - Sử dụng `get_agent()` singleton trả về LangGraph CompiledStateGraph
+  - Quản lý bộ nhớ hội thoại tự động qua `session_id` (LangGraph thread_id)
   - Đo thời gian thực thi và trả về `ChatExecutionMeta`
-  - `ask()` nhận thêm `db: Session` để sẵn sàng cho các query trực tiếp sau này
 """
 
 import logging
 import time
 
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from sqlalchemy.orm import Session
 
 from app.agents.sql_agent import get_agent
 from app.core.exceptions import AgentException, ValidationException
-from app.schemas.chat import ChatExecutionMeta, ChatRequest, ChatResponse
+from app.schemas.chat import (
+    ChatExecutionMeta,
+    ChatMessage,
+    ChatMessageRole,
+    ChatRequest,
+    ChatResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,27 +52,43 @@ class ChatService:
 
         return question
 
-    
     @staticmethod
-    def run_agent(question: str) -> tuple[dict, float]:
+    def run_agent(
+        question: str,
+        session_id: str | None = None,
+        history: list[ChatMessage] | None = None,
+    ) -> tuple[dict, float]:
         """
-        Gửi câu hỏi đến SQL Agent và đo thời gian thực thi.
+        Gửi câu hỏi đến LangGraph SQL Agent và đo thời gian thực thi.
+        Hỗ trợ conversation history qua `session_id` (thread_id).
 
         Returns:
             (result_dict, elapsed_ms)
-
-        Raises:
-            AgentException: khi Agent gặp lỗi không mong muốn.
         """
         agent = get_agent()
         start = time.perf_counter()
 
+        # Chuẩn bị tin nhắn truyền vào LangGraph
+        input_messages: list[BaseMessage] = []
+        if history:
+            for msg in history:
+                if msg.role == ChatMessageRole.USER:
+                    input_messages.append(HumanMessage(content=msg.content))
+                elif msg.role == ChatMessageRole.ASSISTANT:
+                    input_messages.append(AIMessage(content=msg.content))
+
+        input_messages.append(HumanMessage(content=question))
+
+        # Cấu hình thread_id cho MemorySaver checkpointer của LangGraph
+        thread_id = session_id if session_id else "default_session"
+        config = {"configurable": {"thread_id": thread_id}}
+
         try:
-            result = agent.invoke({"input": question})
+            result = agent.invoke({"messages": input_messages}, config=config)
             elapsed_ms = (time.perf_counter() - start) * 1000
             logger.info(
-                f"[ChatService] Agent hoàn tất | "
-                f"question_len={len(question)} | elapsed={elapsed_ms:.1f}ms"
+                f"[ChatService] LangGraph Agent hoàn tất | "
+                f"session_id={thread_id} | question_len={len(question)} | elapsed={elapsed_ms:.1f}ms"
             )
             return result, elapsed_ms
 
@@ -83,44 +105,43 @@ class ChatService:
     # -----------------------------------------------------------------------
     @staticmethod
     def format_response(result: dict, elapsed_ms: float) -> ChatResponse:
-        """Chuyển output của Agent thành ChatResponse schema chuẩn."""
-        raw_output = result.get("output", "Không có kết quả.")
+        """Chuyển output của LangGraph Agent thành ChatResponse schema chuẩn."""
+        messages: list[BaseMessage] = result.get("messages", [])
 
-        # Xử lý đa dạng kiểu dữ liệu của raw_output (str, list[dict], dict)
-        if isinstance(raw_output, str):
-            answer = raw_output.strip()
-        elif isinstance(raw_output, list):
-            extracted_texts = []
-            for item in raw_output:
-                if isinstance(item, dict) and "text" in item:
-                    extracted_texts.append(str(item["text"]))
-                elif isinstance(item, str):
-                    extracted_texts.append(item)
-                else:
-                    extracted_texts.append(str(item))
-            answer = "\n".join(extracted_texts).strip() if extracted_texts else "Không có kết quả."
-        elif isinstance(raw_output, dict) and "text" in raw_output:
-            answer = str(raw_output["text"]).strip()
-        else:
-            answer = str(raw_output).strip()
-
-        # Trích xuất SQL từ intermediate_steps nếu có
+        answer = "Không có kết quả."
         generated_sql: str | None = None
-        intermediate = result.get("intermediate_steps", [])
-        for action, _ in intermediate:
-            tool_input = getattr(action, "tool_input", None)
-            sql_candidate: str | None = None
 
-            if isinstance(tool_input, str):
-                sql_candidate = tool_input
-            elif isinstance(tool_input, dict):
-                sql_candidate = tool_input.get("query") or tool_input.get("sql") or tool_input.get("sql_query")
+        # Trích xuất câu trả lời cuối cùng từ AIMessage có nội dung
+        for msg in reversed(messages):
+            if isinstance(msg, AIMessage) and msg.content:
+                extracted = ""
+                if isinstance(msg.content, str) and msg.content.strip():
+                    extracted = msg.content.strip()
+                elif isinstance(msg.content, list):
+                    text_parts = []
+                    for item in msg.content:
+                        if isinstance(item, str) and item.strip():
+                            text_parts.append(item.strip())
+                        elif isinstance(item, dict) and "text" in item and str(item["text"]).strip():
+                            text_parts.append(str(item["text"]).strip())
+                    if text_parts:
+                        extracted = "\n".join(text_parts).strip()
 
-            if sql_candidate and isinstance(sql_candidate, str):
-                cleaned_candidate = sql_candidate.strip()
-                if cleaned_candidate.upper().startswith("SELECT"):
-                    generated_sql = cleaned_candidate
+                if extracted:
+                    answer = extracted
                     break
+
+        # Trích xuất SQL query từ tool_calls trong danh sách messages
+        for msg in messages:
+            if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+                for tc in msg.tool_calls:
+                    tool_name = tc.get("name")
+                    if tool_name in ("sql_query", "safe_sql_query"):
+                        args = tc.get("args") or {}
+                        if isinstance(args, dict):
+                            sql_cand = args.get("query") or args.get("sql")
+                            if sql_cand and isinstance(sql_cand, str):
+                                generated_sql = sql_cand.strip()
 
         meta = ChatExecutionMeta(
             execution_time_ms=round(elapsed_ms, 2),
@@ -141,7 +162,6 @@ class ChatService:
     def ask(cls, request: ChatRequest, db: Session) -> ChatResponse:
         """
         Pipeline hoàn chỉnh: validate → run → format.
-
         Args:
             request: ChatRequest schema từ API layer.
             db: SQLAlchemy Session (Dependency Injected).
@@ -150,5 +170,9 @@ class ChatService:
             ChatResponse đã được định dạng.
         """
         question = cls.validate_question(request.question)
-        result, elapsed_ms = cls.run_agent(question)
+        result, elapsed_ms = cls.run_agent(
+            question=question,
+            session_id=request.session_id,
+            history=request.history,
+        )
         return cls.format_response(result, elapsed_ms)

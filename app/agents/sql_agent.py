@@ -16,14 +16,11 @@ import logging
 import warnings
 from functools import lru_cache
 
-try:
-    from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
-except ImportError:
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.utilities import SQLDatabase
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.prebuilt import create_react_agent
 
 from app.agents.tools import GetTableSchemaTool, ListTablesTool, SafeSQLQueryTool
 from app.core.config import get_settings
@@ -122,15 +119,17 @@ When generating your final response to the user, strictly follow these formattin
 AGENT_SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + OUTPUT_PROMPT
 
 
-def create_agent(timeout_seconds: int = 30) -> AgentExecutor:
+_memory_saver = MemorySaver()
+
+
+def create_agent(timeout_seconds: int = 30) -> CompiledStateGraph:
     """
-    Tạo và trả về một ReAct AgentExecutor thuần túy với:
+    Tạo và trả về một LangGraph ReAct Agent StateGraph với:
       - LLM: Gemini Flash từ settings mới nhất
       - Tools: Bộ Custom Tools tự định nghĩa (ListTablesTool, GetTableSchemaTool, SafeSQLQueryTool)
-      - Không sử dụng SQLDatabaseToolkit hay create_sql_agent của LangChain
-      - SafeSQLQueryTool bọc guard sql_validator & timeout
+      - Checkpointer: MemorySaver quản lý hội thoại tự động qua thread_id
     """
-    logger.info("[AgentFactory] Khởi tạo Custom ReAct SQL Agent...")
+    logger.info("[AgentFactory] Khởi tạo Custom LangGraph ReAct SQL Agent...")
     current_settings = get_settings()
 
     llm = ChatGoogleGenerativeAI(
@@ -148,43 +147,31 @@ def create_agent(timeout_seconds: int = 30) -> AgentExecutor:
         SafeSQLQueryTool(db=db, timeout_seconds=timeout_seconds),
     ]
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", AGENT_SYSTEM_PROMPT),
-        MessagesPlaceholder(variable_name="chat_history", optional=True),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
-
-    agent = create_tool_calling_agent(llm, tools, prompt)
-
-    agent_executor = AgentExecutor(
-        agent=agent,
+    agent_graph = create_react_agent(
+        model=llm,
         tools=tools,
-        verbose=current_settings.debug,
-        max_iterations=10,
-        max_execution_time=float(timeout_seconds),
-        handle_parsing_errors=True,
-        return_intermediate_steps=True,
+        prompt=AGENT_SYSTEM_PROMPT,
+        checkpointer=_memory_saver,
     )
 
-    logger.info("[AgentFactory] Custom ReAct SQL Agent đã sẵn sàng.")
-    return agent_executor
+    logger.info("[AgentFactory] LangGraph ReAct SQL Agent đã sẵn sàng.")
+    return agent_graph
 
 
-_agent_cache: AgentExecutor | None = None
+_agent_cache: CompiledStateGraph | None = None
 _cached_api_key: str | None = None
 
 
-def get_agent() -> AgentExecutor:
+def get_agent() -> CompiledStateGraph:
     """
-    Tải hoặc tái sử dụng Agent singleton.
+    Tải hoặc tái sử dụng Agent singleton graph.
     Tự động tái khởi tạo nếu API key trong .env thay đổi.
     """
     global _agent_cache, _cached_api_key
     current_api_key = get_settings().gemini_api_key
 
     if _agent_cache is None or _cached_api_key != current_api_key:
-        logger.info("[AgentFactory] Khởi tạo lại Agent với API key mới...")
+        logger.info("[AgentFactory] Khởi tạo lại LangGraph Agent với API key mới...")
         _agent_cache = create_agent()
         _cached_api_key = current_api_key
 
