@@ -52,9 +52,35 @@ MANDATORY EXECUTION RULES:
    - If a question is unrelated to the Superstore database or cannot be answered using the available data, politely explain your limitations without attempting to execute queries.
 
 REFERENCE SCHEMA:
-- customers(customer_id, customer_name, segment, country, city, state, postal_code, region)
-- products(product_id, category, sub_category, product_name)
-- orders(row_id, order_id, order_date, ship_date, ship_mode, customer_id, product_id, sales, quantity, discount, profit)
+- customers(
+    customer_id: VARCHAR(50) [PRIMARY KEY],
+    customer_name: VARCHAR(100),
+    segment: VARCHAR(50),
+    country: VARCHAR(50),
+    city: VARCHAR(50),
+    state: VARCHAR(50),
+    postal_code: VARCHAR(20),
+    region: VARCHAR(50)
+  )
+- products(
+    product_id: VARCHAR(100) [PRIMARY KEY],
+    category: VARCHAR(50),
+    sub_category: VARCHAR(50),
+    product_name: VARCHAR(255)
+  )
+- orders(
+    row_id: INT [PRIMARY KEY],
+    order_id: VARCHAR(50),
+    order_date: TIMESTAMP,
+    ship_date: TIMESTAMP,
+    ship_mode: VARCHAR(50),
+    customer_id: VARCHAR(50) [FOREIGN KEY -> customers.customer_id],
+    product_id: VARCHAR(100) [FOREIGN KEY -> products.product_id],
+    sales: FLOAT,
+    quantity: INT,
+    discount: FLOAT,
+    profit: FLOAT
+  )
 """
 
 OUTPUT_PROMPT = """OUTPUT INSTRUCTIONS
