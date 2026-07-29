@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="SQL Agent POC",
         description=(
-            "Hệ thống hỏi đáp dữ liệu bán lẻ bằng ngôn ngữ tự nhiên, "
+            "Hệ thống hỏi đáp dữ liệu bằng ngôn ngữ tự nhiên, "
             "sử dụng LangChain SQL Agent + Google Gemini."
         ),
         version="1.0.0",
