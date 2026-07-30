@@ -13,7 +13,7 @@ import logging
 import time
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-# removed unused Session import
+from sqlalchemy.orm import Session
 
 from app.agents.sql_agent import get_agent
 from app.core.exceptions import AgentException, ValidationException
@@ -159,12 +159,12 @@ class ChatService:
     # Public Entry Point
     # -----------------------------------------------------------------------
     @classmethod
-    def ask(cls, request: ChatRequest) -> ChatResponse:
+    def ask(cls, request: ChatRequest, db: Session) -> ChatResponse:
         """
         Pipeline hoàn chỉnh: validate → run → format.
         Args:
             request: ChatRequest schema từ API layer.
-            (Previously accepted `db` Session but it was unused.)
+            db: SQLAlchemy Session (Dependency Injected).
 
         Returns:
             ChatResponse đã được định dạng.
