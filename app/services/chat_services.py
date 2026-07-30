@@ -13,7 +13,6 @@ import logging
 import time
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from sqlalchemy.orm import Session
 
 from app.agents.sql_agent import get_agent
 from app.core.exceptions import AgentException, ValidationException
@@ -159,7 +158,7 @@ class ChatService:
     # Public Entry Point
     # -----------------------------------------------------------------------
     @classmethod
-    def ask(cls, request: ChatRequest, db: Session) -> ChatResponse:
+    def ask(cls, request: ChatRequest) -> ChatResponse:
         """
         Pipeline hoàn chỉnh: validate → run → format.
         Args:
