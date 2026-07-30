@@ -6,13 +6,14 @@ truyền vào database hoặc LLM agent.
 
 Nguyên tắc: chỉ cho phép SELECT. Mọi lệnh ghi (DML/DDL) đều bị từ chối.
 """
+# dùng cơ chế guadrails // sử dụng prompt -> hacker sử dụng ngôn ngữ tự nhiên khác tiếng anh 
+
 
 import re
 import logging
 from app.core.exceptions import SQLInjectionError
 
 logger = logging.getLogger(__name__)
-
 
 FORBIDDEN_KEYWORDS: list[str] = [
     # DML – ghi / xóa dữ liệu

@@ -10,10 +10,7 @@ Thay đổi so với phiên bản cũ:
   - Exception được handle bởi Global Handler (không try/except ở đây)
 """
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
-
-from app.core.database import get_db
+from fastapi import APIRouter, status
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.chat_services import ChatService
 
@@ -33,10 +30,7 @@ router = APIRouter(
         "Agent sẽ tự động sinh SQL, truy vấn database và trả lời."
     ),
 )
-def ask_question(
-    request: ChatRequest,
-    db: Session = Depends(get_db),
-) -> ChatResponse:
+def ask_question(request: ChatRequest) -> ChatResponse:
     """
     Endpoint nhận câu hỏi từ người dùng và trả lời qua SQL Agent.
 
@@ -44,4 +38,4 @@ def ask_question(
     - **session_id**: (optional) ID phiên hội thoại
     - **include_sql**: Có trả về câu SQL đã sinh không (mặc định True)
     """
-    return ChatService.ask(request=request, db=db)
+    return ChatService.ask(request=request)
