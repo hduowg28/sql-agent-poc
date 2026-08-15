@@ -12,7 +12,25 @@
 
 ## 🚀 Hướng Dẫn Chạy Dự Án (Quick Start)
 
-### 1. Chuẩn bị Môi trường & Cấu hình `.env`
+### 1. Chuẩn bị Môi trường Tiền Đề (Prerequisites)
+
+Trước khi khởi chạy dự án, bạn cần chuẩn bị:
+1. **Lấy Gemini API Key**:
+   - Truy cập [Google AI Studio](https://aistudio.google.com/app/apikey).
+   - Đăng nhập tài khoản Google và bấm **Create API key** để tạo key mới.
+   - Lưu lại mã API key để dán vào biến `GEMINI_API_KEY` trong file `.env`.
+2. **Cài đặt & Khởi động PostgreSQL Database**:
+   - Đảm bảo PostgreSQL đã được cài đặt và service PostgreSQL đang chạy trên máy (mặc định port `5432`).
+   - Tạo một database mới tên là `sales_db` (hoặc tên tùy chọn):
+     - **Qua Command Line (`psql`)**:
+       ```bash
+       psql -U postgres -c "CREATE DATABASE sales_db;"
+       ```
+     - **Qua GUI Tool (pgAdmin / DBeaver / DataGrip)**: Kết nối vào PostgreSQL Server -> Chuột phải vào `Databases` -> Chọn `Create` -> `Database...` -> Đặt tên `sales_db`.
+
+---
+
+### 2. Thiết lập Môi trường Python & Cấu hình `.env`
 
 - **Tạo và kích hoạt môi trường ảo Python**:
   ```bash
@@ -32,17 +50,28 @@
   ```
 
 - **Tạo file cấu hình `.env`**:
-  Tạo file `.env` tại thư mục gốc dự án (`sql-agent-poc/.env`):
+  Tạo file `.env` tại thư mục gốc dự án (`sql-agent-poc/.env`) (hoặc copy từ file mẫu `.env.example`):
+  ```bash
+  # Trên Linux/macOS hoặc Git Bash:
+  cp .env.example .env
+
+  # Trên Windows PowerShell:
+  Copy-Item .env.example .env
+  ```
+  Nội dung file `.env`:
   ```env
   APP_ENV=development
   DEBUG=true
   GEMINI_API_KEY=your_gemini_api_key_here
-  DATABASE_URL=postgresql://postgres:password@localhost:5432/superstore_db
+  DATABASE_URL=postgresql://postgres:123456@localhost:5432/sales_db
   ```
+  > [!IMPORTANT]
+  > - **`GEMINI_API_KEY`**: Thay `your_gemini_api_key_here` bằng Gemini API Key thu được ở Bước 1.
+  > - **`DATABASE_URL`**: Đảm bảo đúng định dạng `postgresql://<username>:<password>@<host>:<port>/<dbname>`. Thay `postgres`, `123456`, `5432`, `sales_db` tương ứng với thông tin tài khoản, mật khẩu, port và tên database PostgreSQL của bạn.
 
 ---
 
-### 2. Tải Dữ liệu Mẫu vào Database (ETL Data Import)
+### 3. Tải Dữ liệu Mẫu vào Database (ETL Data Import)
 
 Trước khi chạy server lần đầu tiên, hãy thực hiện ETL Pipeline để tự động tạo bảng (`customers`, `products`, `orders`) và import dữ liệu từ file `data/Sample - Superstore.csv` vào PostgreSQL:
 
@@ -53,7 +82,7 @@ python -m app.core.db_uploader
 
 ---
 
-### 3. Khởi chạy Backend Server (FastAPI)
+### 4. Khởi chạy Backend Server (FastAPI)
 
 Chạy máy chủ API Backend với lệnh:
 
@@ -67,7 +96,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-### 4. Khởi chạy Frontend Web App (React + Vite)
+### 5. Khởi chạy Frontend Web App (React + Vite)
 
 Mở một cửa sổ Terminal thứ hai và thực hiện các lệnh sau:
 
@@ -86,7 +115,7 @@ npm run dev
 
 ---
 
-### 5. Chạy Kiểm Thử (Test Suite)
+### 6. Chạy Kiểm Thử (Test Suite)
 
 Dự án đi kèm các bộ test tự động để kiểm tra Pydantic schemas và LangGraph agent:
 

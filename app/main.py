@@ -71,9 +71,16 @@ def create_app() -> FastAPI:
     )
 
     # CORS (cho phép gọi từ frontend local khi dev)
+    origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.app_env == "development" else [],
+        allow_origins=origins if settings.app_env == "development" else [],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
