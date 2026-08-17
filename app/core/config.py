@@ -9,6 +9,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
     database_url: str
 
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
 
+    security_lab: bool = True
     app_env: str = "development"
     debug: bool = False
 

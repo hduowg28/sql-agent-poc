@@ -17,6 +17,7 @@ from langchain.tools import BaseTool
 from langchain_community.utilities import SQLDatabase
 from pydantic import Field
 
+from data.security_lab.sandbox_db import execute_sql_in_sandbox, DBSandboxError
 from app.agents.sql_validator import validate_sql
 from app.core.exceptions import AgentTimeoutError, SQLInjectionError
 
@@ -53,20 +54,20 @@ def _run_with_timeout(fn, *args, timeout: int = _DEFAULT_TIMEOUT_SECONDS, **kwar
             except FuturesTimeout:
                 raise AgentTimeoutError(timeout_seconds=timeout)
 
-class SafeSQLQueryTool(BaseTool):
+class SQLQueryTool(BaseTool):
     """
-    LangChain Tool thực thi SQL SELECT an toàn:
-      1. Validate SQL qua sql_validator (chặn DML/DDL)
-      2. Chạy query qua SQLDatabase với timeout
-      3. Trả về kết quả dạng string cho LLM xử lý tiếp
+    LangChain Tool thực thi câu lệnh SQL qua Sandbox DB:
+      1. Thực thi query (SELECT, UPDATE, DELETE, INSERT) trong Sandbox DB cô lập.
+      2. Tự động ROLLBACK sau khi chạy để đảm bảo an toàn cho dữ liệu thật.
+      3. Áp dụng giới hạn timeout.
     """
 
     name: str = "sql_query"
     description: str = (
-        "Thực thi một câu lệnh SQL SELECT để truy vấn dữ liệu từ database. "
-        "Chỉ chấp nhận câu lệnh SELECT. "
+        "Thực thi câu lệnh SQL (SELECT, UPDATE, DELETE, INSERT, v.v.) để truy vấn hoặc thử nghiệm thay đổi dữ liệu. "
+        "Chạy trong môi trường Sandbox DB an toàn cô lập (mọi thay đổi sẽ tự động rollback). "
         "Input: một câu lệnh SQL hợp lệ. "
-        "Output: kết quả dạng bảng dưới dạng text."
+        "Output: kết quả truy vấn hoặc số dòng bị ảnh hưởng dưới dạng text."
     )
     db: SQLDatabase = Field(exclude=True)
     timeout_seconds: int = Field(default=_DEFAULT_TIMEOUT_SECONDS)
@@ -75,34 +76,38 @@ class SafeSQLQueryTool(BaseTool):
         arbitrary_types_allowed = True
 
     def _run(self, query: str, **kwargs: Any) -> str:
-        """Thực thi query sau khi đã validate."""
-        # 1. Guard: chặn câu lệnh nguy hiểm
+        """Thực thi query qua cơ chế DB Sandbox."""
         try:
-            safe_query = validate_sql(query)
+            validated_query = validate_sql(query)
         except SQLInjectionError as exc:
-            logger.error(f"[SafeSQLQueryTool] SQL bị từ chối: {exc}")
+            logger.error(f"[SQLQueryTool] SQL bị từ chối: {exc}")
             return f" Lỗi bảo mật: {exc.message}"
 
-        # 2. Thực thi với timeout
-        logger.info(f"[SafeSQLQueryTool] Thực thi query: {safe_query[:200]}")
+        logger.info(f"[SQLQueryTool] Thực thi query qua Sandbox DB: {validated_query[:200]}")
         try:
             result = _run_with_timeout(
-                self.db.run,
-                safe_query,
+                execute_sql_in_sandbox,
+                self.db,
+                validated_query,
                 timeout=self.timeout_seconds,
             )
-            logger.info("[SafeSQLQueryTool] Query thực thi thành công.")
+            logger.info("[SQLQueryTool] Query Sandbox thực thi thành công.")
             return str(result)
+        except DBSandboxError as exc:
+            logger.error(f"[SQLQueryTool] Lỗi bảo mật Sandbox DB: {exc}")
+            return f" Lỗi bảo mật: {exc.message}"
         except AgentTimeoutError as exc:
-            logger.error(f"[SafeSQLQueryTool] Timeout: {exc}")
+            logger.error(f"[SQLQueryTool] Timeout: {exc}")
             return f"⏱️ Lỗi timeout: Query vượt quá {self.timeout_seconds}s."
         except Exception as exc:
-            logger.error(f"[SafeSQLQueryTool] Lỗi không xác định: {exc}")
+            logger.error(f"[SQLQueryTool] Lỗi thực thi query: {exc}")
             return f" Lỗi thực thi query: {exc}"
 
     async def _arun(self, query: str, **kwargs: Any) -> str:
         """Async version – delegate về _run."""
         return self._run(query, **kwargs)
+
+SafeSQLQueryTool = SQLQueryTool
 
 
 class ListTablesTool(BaseTool):
