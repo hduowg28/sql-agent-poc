@@ -22,7 +22,13 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 
-from app.agents.tools import GetTableSchemaTool, ListTablesTool, SafeSQLQueryTool
+from app.agents.tools import (
+    GetTableSchemaTool,
+    ListTablesTool,
+    SafeSQLQueryTool,
+    GetCustomerTool,
+    RegisterCustomerTool,
+)
 from app.core.config import get_settings
 from app.core.database import engine
 
@@ -38,14 +44,19 @@ AVAILABLE TOOLS:
 - `list_tables`: Lists all available tables in the database.
 - `get_table_schema`: Retrieves table structures (DDL) and sample rows.
 - `sql_query`: Executes a SQL query (SELECT, UPDATE, DELETE, INSERT) inside an isolated DB Sandbox where all changes are automatically rolled back.
+- `get_customer`: Retrieves detailed customer profile by customer_id via Customer Service.
+- `register_customer`: Registers a new customer in the database via Customer Service.
 
 MANDATORY EXECUTION RULES:
 1. Database Schema Exploration:
    - Use `list_tables` or `get_table_schema` whenever you need to verify table names or column structures before constructing queries.
-2. Isolated Sandbox SQL Operations:
+2. Business Tools vs Raw SQL Tools:
+   - Use `get_customer` or `register_customer` when specific customer business operations are requested.
+   - Use `sql_query` for analytical data queries or sandbox security testing.
+3. Isolated Sandbox SQL Operations:
    - SQL queries are executed in a safe DB Sandbox. Modifications (UPDATE, DELETE, etc.) are allowed for security research/testing purposes because changes automatically ROLLBACK.
    - For SELECT queries, limit results using LIMIT (maximum 100 rows) unless instructed otherwise.
-3. Out-of-Scope Handling:
+4. Out-of-Scope Handling:
    - If a question is unrelated to the database or security lab testing, politely explain your limitations.
 
 REFERENCE SCHEMA:
@@ -145,6 +156,8 @@ def create_agent(timeout_seconds: int = 30) -> CompiledStateGraph:
         ListTablesTool(db=db),
         GetTableSchemaTool(db=db),
         SafeSQLQueryTool(db=db, timeout_seconds=timeout_seconds),
+        GetCustomerTool(db=db),
+        RegisterCustomerTool(db=db),
     ]
 
     agent_graph = create_react_agent(

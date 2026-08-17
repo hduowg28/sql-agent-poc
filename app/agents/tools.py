@@ -164,3 +164,86 @@ class GetTableSchemaTool(BaseTool):
 
     async def _arun(self, table_names: str, **kwargs: Any) -> str:
         return self._run(table_names, **kwargs)
+
+
+class GetCustomerTool(BaseTool):
+    """
+    LangChain Custom Tool lấy thông tin chi tiết một Customer qua Business Service.
+    """
+
+    name: str = "get_customer"
+    description: str = (
+        "Lấy thông tin chi tiết của một khách hàng dựa trên customer_id (ví dụ: 'CG-12520' hoặc 'CUST-001'). "
+        "Input: mã customer_id duy nhất dưới dạng string."
+    )
+    db: SQLDatabase = Field(exclude=True)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def _run(self, customer_id: str, **kwargs: Any) -> str:
+        if not customer_id or not isinstance(customer_id, str) or not customer_id.strip():
+            return "Vui lòng cung cấp mã customer_id hợp lệ."
+        try:
+            from app.core.database import SessionLocal
+            from app.services.customer_service import CustomerService
+
+            with SessionLocal() as db_session:
+                res = CustomerService.get_customer(customer_id=customer_id.strip(), db=db_session)
+                return str(res.model_dump())
+        except Exception as exc:
+            logger.error(f"[GetCustomerTool] Lỗi khi lấy thông tin customer '{customer_id}': {exc}")
+            return f" Lỗi khi lấy thông tin customer: {exc}"
+
+    async def _arun(self, customer_id: str, **kwargs: Any) -> str:
+        return self._run(customer_id, **kwargs)
+
+
+class RegisterCustomerTool(BaseTool):
+    """
+    LangChain Custom Tool đăng ký thông tin Customer mới qua Business Service.
+    """
+
+    name: str = "register_customer"
+    description: str = (
+        "Đăng ký một thông tin khách hàng mới vào hệ thống. "
+        "Input: customer_name (bắt buộc), segment, country, city, state, postal_code, region."
+    )
+    db: SQLDatabase = Field(exclude=True)
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    def _run(self, tool_input: str | dict, **kwargs: Any) -> str:
+        try:
+            import json
+            from app.core.database import SessionLocal
+            from app.schemas.customer import CustomerCreate
+            from app.services.customer_service import CustomerService
+
+            data_dict = {}
+            if isinstance(tool_input, dict):
+                data_dict = tool_input
+            elif isinstance(tool_input, str):
+                cleaned = tool_input.strip()
+                if cleaned.startswith("{") and cleaned.endswith("}"):
+                    data_dict = json.loads(cleaned)
+                else:
+                    parts = [p.strip() for p in cleaned.split(",") if ":" in p]
+                    for part in parts:
+                        k, v = part.split(":", 1)
+                        data_dict[k.strip()] = v.strip()
+                    if "customer_name" not in data_dict and cleaned:
+                        data_dict["customer_name"] = cleaned
+
+            create_schema = CustomerCreate(**data_dict)
+            with SessionLocal() as db_session:
+                res = CustomerService.register_customer(data=create_schema, db=db_session)
+                return f"Đăng ký khách hàng thành công: {res.model_dump()}"
+
+        except Exception as exc:
+            logger.error(f"[RegisterCustomerTool] Lỗi đăng ký customer: {exc}")
+            return f" Lỗi đăng ký customer: {exc}"
+
+    async def _arun(self, tool_input: str | dict, **kwargs: Any) -> str:
+        return self._run(tool_input, **kwargs)

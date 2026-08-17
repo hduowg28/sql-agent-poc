@@ -21,9 +21,21 @@ from app.core.exceptions import (
     AgentTimeoutError,
     AgentException,
     ValidationException,
+    CustomerNotFoundException,
+    CustomerAlreadyExistsException,
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def handle_customer_not_found(request: Request, exc: CustomerNotFoundException) -> JSONResponse:
+    logger.warning(f"[Customer] CustomerNotFound | path={request.url.path} | {exc}")
+    return _error_response(
+        status_code=status.HTTP_404_NOT_FOUND,
+        error_type="CustomerNotFoundException",
+        message=exc.message,
+        detail=exc.detail,
+    )
 
 
 def _error_response(
@@ -165,6 +177,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AgentException, handle_agent_exception)
     app.add_exception_handler(DatabaseConnectionError, handle_db_connection_error)
     app.add_exception_handler(DatabaseException, handle_database_exception)
+    app.add_exception_handler(CustomerNotFoundException, handle_customer_not_found)
     app.add_exception_handler(ValidationException, handle_validation_exception)
     app.add_exception_handler(AppException, handle_app_exception)
 

@@ -91,7 +91,10 @@ def create_app() -> FastAPI:
 
     # Routers
     from app.api.chat import router as chat_router
+    from app.api.customers import router as customers_router
     application.include_router(chat_router, prefix="/api/v1")
+    application.include_router(customers_router, prefix="/api/v1")
+    application.include_router(customers_router, prefix="/api")
 
     # Health check endpoint
     @application.get("/health", tags=["System"])

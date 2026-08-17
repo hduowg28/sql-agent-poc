@@ -98,3 +98,24 @@ class ValidationException(AppException):
             message=f"Dữ liệu trường '{field}' không hợp lệ." if field else "Dữ liệu không hợp lệ.",
             detail=detail,
         )
+
+
+class CustomerNotFoundException(ValidationException):
+    """Không tìm thấy thông tin khách hàng."""
+
+    def __init__(self, customer_id: str) -> None:
+        self.customer_id = customer_id
+        super().__init__(
+            field="customer_id",
+            detail=f"Không tìm thấy khách hàng với mã '{customer_id}'.",
+        )
+
+
+class CustomerAlreadyExistsException(ValidationException):
+    """Khách hàng đã tồn tại trong hệ thống."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(
+            field="customer_name",
+            detail=detail,
+        )

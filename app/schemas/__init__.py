@@ -18,6 +18,8 @@ from app.schemas.sql import (
     TableSchemaInfo,
 )
 
+from app.schemas.customer import CustomerCreate, CustomerResponse
+
 __all__ = [
     # Base
     "AppBaseModel",
@@ -26,6 +28,9 @@ __all__ = [
     "ResponseEnvelope",
     "ErrorDetail",
     "ErrorResponse",
+    # Customer Domain
+    "CustomerCreate",
+    "CustomerResponse",
     # Chat Domain
     "ChatMessageRole",
     "ChatMessage",
