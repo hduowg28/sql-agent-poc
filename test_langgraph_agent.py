@@ -23,7 +23,7 @@ def test_langgraph_and_history():
             question="Trong cơ sở dữ liệu Superstore có những bảng nào?",
             session_id=session_id
         )
-        res1 = ChatService.ask(req1, db)
+        res1 = ChatService.ask(req1)
         print("Response 1 Success:", res1.success)
         print("Answer 1:\n", res1.answer)
         print("Execution Time:", res1.execution_meta.execution_time_ms, "ms")
@@ -34,11 +34,20 @@ def test_langgraph_and_history():
             question="Cho tôi biết bảng orders có bao nhiêu cột và các cột đó tên là gì?",
             session_id=session_id
         )
-        res2 = ChatService.ask(req2, db)
+        res2 = ChatService.ask(req2)
         print("Response 2 Success:", res2.success)
         print("Answer 2:\n", res2.answer)
-        print("SQL Executed:", res2.generated_sql)
-        print("Execution Time:", res2.execution_meta.execution_time_ms, "ms")
+        # Question 3 (Requires SQL query execution)
+        print("\n--- Question 3: Query executing SQL ---")
+        req3 = ChatRequest(
+            question="Tổng số khách hàng trong database là bao nhiêu?",
+            session_id=session_id
+        )
+        res3 = ChatService.ask(req3)
+        print("Response 3 Success:", res3.success)
+        print("Answer 3:\n", res3.answer)
+        print("SQL Executed:\n", res3.generated_sql)
+        print("Execution Time:", res3.execution_meta.execution_time_ms, "ms")
 
         print("\n[PASSED] LangGraph Agent & Conversation History working cleanly!")
 

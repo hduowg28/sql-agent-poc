@@ -21,6 +21,8 @@ from app.core.exceptions import (
     AgentTimeoutError,
     AgentException,
     ValidationException,
+    CustomerNotFoundException,
+    CustomerAlreadyExistsException,
 )
 
 logger = logging.getLogger(__name__)
@@ -106,6 +108,30 @@ async def handle_validation_exception(request: Request, exc: ValidationException
     )
 
 
+async def handle_customer_not_found_error(
+    request: Request, exc: CustomerNotFoundException
+) -> JSONResponse:
+    logger.warning(f"[Customer] CustomerNotFound | path={request.url.path} | id={exc.customer_id}")
+    return _error_response(
+        status_code=status.HTTP_404_NOT_FOUND,
+        error_type="CustomerNotFoundException",
+        message=exc.message,
+        detail=exc.detail,
+    )
+
+
+async def handle_customer_already_exists_error(
+    request: Request, exc: CustomerAlreadyExistsException
+) -> JSONResponse:
+    logger.warning(f"[Customer] CustomerAlreadyExists | path={request.url.path} | id={exc.customer_id}")
+    return _error_response(
+        status_code=status.HTTP_409_CONFLICT,
+        error_type="CustomerAlreadyExistsException",
+        message=exc.message,
+        detail=exc.detail,
+    )
+
+
 async def handle_app_exception(request: Request, exc: AppException) -> JSONResponse:
     """Fallback handler cho mọi AppException chưa được handle cụ thể."""
     logger.error(f"[App] Unhandled AppException | path={request.url.path} | {exc}")
@@ -160,6 +186,8 @@ def register_exception_handlers(app: FastAPI) -> None:
         register_exception_handlers(app)
     """
     # Specific custom exceptions (theo thứ tự từ cụ thể → tổng quát)
+    app.add_exception_handler(CustomerNotFoundException, handle_customer_not_found_error)
+    app.add_exception_handler(CustomerAlreadyExistsException, handle_customer_already_exists_error)
     app.add_exception_handler(SQLInjectionError, handle_sql_injection_error)
     app.add_exception_handler(AgentTimeoutError, handle_agent_timeout)
     app.add_exception_handler(AgentException, handle_agent_exception)

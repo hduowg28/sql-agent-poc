@@ -9,6 +9,7 @@ from app.schemas.chat import (
     ChatEnvelopeResponse,
 )
 from app.schemas.common import ErrorDetail, ErrorResponse, ResponseEnvelope
+from app.schemas.customer import CustomerCreate, CustomerResponse
 from app.schemas.health import HealthCheckResponse, HealthCheckResponseData
 from app.schemas.sql import (
     ColumnSchemaInfo,
@@ -26,6 +27,9 @@ __all__ = [
     "ResponseEnvelope",
     "ErrorDetail",
     "ErrorResponse",
+    # Customer Domain
+    "CustomerCreate",
+    "CustomerResponse",
     # Chat Domain
     "ChatMessageRole",
     "ChatMessage",

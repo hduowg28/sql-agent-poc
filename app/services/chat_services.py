@@ -103,7 +103,11 @@ class ChatService:
     # Response Formatter
     # -----------------------------------------------------------------------
     @staticmethod
-    def format_response(result: dict, elapsed_ms: float) -> ChatResponse:
+    def format_response(
+        result: dict,
+        elapsed_ms: float,
+        include_sql: bool = True,
+    ) -> ChatResponse:
         """Chuyển output của LangGraph Agent thành ChatResponse schema chuẩn."""
         messages: list[BaseMessage] = result.get("messages", [])
 
@@ -131,26 +135,42 @@ class ChatService:
                     break
 
         # Trích xuất SQL query từ tool_calls trong danh sách messages
+        executed_sqls: list[str] = []
         for msg in messages:
-            if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
-                for tc in msg.tool_calls:
-                    tool_name = tc.get("name")
-                    if tool_name in ("sql_query", "safe_sql_query"):
-                        args = tc.get("args") or {}
-                        if isinstance(args, dict):
-                            sql_cand = args.get("query") or args.get("sql")
-                            if sql_cand and isinstance(sql_cand, str):
-                                generated_sql = sql_cand.strip()
+            tool_calls = []
+            if isinstance(msg, AIMessage):
+                if getattr(msg, "tool_calls", None):
+                    tool_calls.extend(msg.tool_calls)
+                if hasattr(msg, "additional_kwargs") and msg.additional_kwargs.get("tool_calls"):
+                    tool_calls.extend(msg.additional_kwargs["tool_calls"])
+
+            for tc in tool_calls:
+                tool_name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", None)
+                if tool_name in ("sql_query", "safe_sql_query", "vulnerable_sql_tool", "execute_raw_sql"):
+                    args = tc.get("args") if isinstance(tc, dict) else getattr(tc, "args", {})
+                    if isinstance(args, str):
+                        try:
+                            import json
+                            args = json.loads(args)
+                        except Exception:
+                            args = {"query": args}
+                    if isinstance(args, dict):
+                        sql_cand = args.get("query") or args.get("sql")
+                        if sql_cand and isinstance(sql_cand, str) and sql_cand.strip():
+                            executed_sqls.append(sql_cand.strip())
+
+        if executed_sqls and include_sql:
+            generated_sql = "\n\n".join(executed_sqls)
 
         meta = ChatExecutionMeta(
             execution_time_ms=round(elapsed_ms, 2),
-            sql_executed=generated_sql is not None,
+            sql_executed=bool(executed_sqls),
         )
 
         return ChatResponse(
             success=True,
             answer=answer,
-            generated_sql=generated_sql,
+            generated_sql=generated_sql if include_sql else None,
             execution_meta=meta,
         )
 
@@ -163,7 +183,6 @@ class ChatService:
         Pipeline hoàn chỉnh: validate → run → format.
         Args:
             request: ChatRequest schema từ API layer.
-            db: SQLAlchemy Session (Dependency Injected).
 
         Returns:
             ChatResponse đã được định dạng.
@@ -174,4 +193,8 @@ class ChatService:
             session_id=request.session_id,
             history=request.history,
         )
-        return cls.format_response(result, elapsed_ms)
+        return cls.format_response(
+            result=result,
+            elapsed_ms=elapsed_ms,
+            include_sql=request.include_sql,
+        )

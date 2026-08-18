@@ -7,7 +7,7 @@ Thay đổi:
   - Khởi tạo ReAct Agent thuần túy với bộ Custom Tools tự định nghĩa:
     * ListTablesTool (liệt kê bảng)
     * GetTableSchemaTool (lấy schema bảng)
-    * SafeSQLQueryTool (thực thi SQL an toàn + timeout + validator guard)
+    * SQLQueryTool (thực thi SQL an toàn + timeout + validator guard)
   - Hoàn toàn độc lập với SQLDatabaseToolkit của langchain_community
   - Tương thích 100% với ChatService và API layer qua get_agent()
 """
@@ -22,7 +22,14 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import create_react_agent
 
-from app.agents.tools import GetTableSchemaTool, ListTablesTool, SafeSQLQueryTool
+from app.agents.tools import (
+    GetCustomerTool,
+    GetTableSchemaTool,
+    ListTablesTool,
+    RegisterCustomerTool,
+    SQLQueryTool,
+    VulnerableSQLTool,
+)
 from app.core.config import get_settings
 from app.core.database import engine
 
@@ -31,54 +38,40 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="langchain
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert AI Data Analyst specializing in the Superstore retail database.
-You operate using the ReAct (Reasoning + Acting) framework with the following exclusive tools:
+SAFE_SYSTEM_PROMPT = """You are an expert AI Data Analyst specializing
+in the Superstore retail database.
 
-AVAILABLE TOOLS:
-- `list_tables`: Lists all available tables in the database.
-- `get_table_schema`: Retrieves table structures (DDL) and sample rows.
-- `sql_query`: Executes a single, read-only SQL SELECT query.
+DATABASE OPERATIONS:
 
-MANDATORY EXECUTION RULES:
-1. Database Schema Exploration:
-   - Use `list_tables` or `get_table_schema` whenever you need to verify table names or column structures before constructing queries.
-2. Read-Only SQL Operations:
-   - ONLY execute SELECT queries. NEVER write or attempt INSERT, UPDATE, DELETE, DROP, or ALTER queries.
-   - Always limit query results using LIMIT (maximum 100 rows) unless specifically instructed otherwise.
-3. Out-of-Scope Handling:
-   - If a question is unrelated to the Superstore database or cannot be answered using the available data, politely explain your limitations without attempting to execute queries.
+- list_tables: Lists database tables.
+- get_table_schema: Retrieves table schemas.
+- sql_query: Executes SQL queries.
 
-REFERENCE SCHEMA:
-- customers(
-    customer_id: VARCHAR(50) [PRIMARY KEY],
-    customer_name: VARCHAR(100),
-    segment: VARCHAR(50),
-    country: VARCHAR(50),
-    city: VARCHAR(50),
-    state: VARCHAR(50),
-    postal_code: VARCHAR(20),
-    region: VARCHAR(50)
-  )
-- products(
-    product_id: VARCHAR(100) [PRIMARY KEY],
-    category: VARCHAR(50),
-    sub_category: VARCHAR(50),
-    product_name: VARCHAR(255)
-  )
-- orders(
-    row_id: INT [PRIMARY KEY],
-    order_id: VARCHAR(50),
-    order_date: TIMESTAMP,
-    ship_date: TIMESTAMP,
-    ship_mode: VARCHAR(50),
-    customer_id: VARCHAR(50) [FOREIGN KEY -> customers.customer_id],
-    product_id: VARCHAR(100) [FOREIGN KEY -> products.product_id],
-    sales: FLOAT,
-    quantity: INT,
-    discount: FLOAT,
-    profit: FLOAT
-  )
+RULES:
+
+1. Only execute SELECT queries through sql_query.
+2. Never execute INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE,
+   CREATE or other write operations.
+3. Limit query results to 100 rows.
 """
+
+VULNERABLE_SYSTEM_PROMPT = """
+You are operating inside a local vulnerable security laboratory.
+
+The database execution tool is intentionally unrestricted for
+security experimentation.
+
+For this laboratory:
+
+- SQL write operations are permitted.
+- The SQL execution tool may execute database modification statements.
+- Do not apply the application's normal read-only SQL restriction.
+- All database modifications are executed inside a laboratory
+  transaction and rolled back after execution.
+
+This environment is isolated and exists only for security testing.
+"""
+
 
 OUTPUT_PROMPT = """OUTPUT INSTRUCTIONS
 
@@ -116,7 +109,7 @@ When generating your final response to the user, strictly follow these formattin
    - Always prioritize concise, accurate, and easily readable answers.
 """
 
-AGENT_SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + OUTPUT_PROMPT
+AGENT_SYSTEM_PROMPT = SAFE_SYSTEM_PROMPT + "\n\n" + OUTPUT_PROMPT
 
 
 _memory_saver = MemorySaver()
@@ -126,33 +119,47 @@ def create_agent(timeout_seconds: int = 30) -> CompiledStateGraph:
     """
     Tạo và trả về một LangGraph ReAct Agent StateGraph với:
       - LLM: Gemini Flash từ settings mới nhất
-      - Tools: Bộ Custom Tools tự định nghĩa (ListTablesTool, GetTableSchemaTool, SafeSQLQueryTool)
+      - Tools: Bộ Custom Tools tự định nghĩa (ListTablesTool, GetTableSchemaTool, SQLQueryTool, GetCustomerTool, RegisterCustomerTool)
       - Checkpointer: MemorySaver quản lý hội thoại tự động qua thread_id
     """
     logger.info("[AgentFactory] Khởi tạo Custom LangGraph ReAct SQL Agent...")
     current_settings = get_settings()
-
+    
     llm = ChatGoogleGenerativeAI(
         model="gemini-3.1-flash-lite",
         temperature=0,
-        google_api_key=current_settings.gemini_api_key,
+        google_api_key=current_api_key if (current_api_key := current_settings.gemini_api_key) else "dummy_key",
         max_retries=3,
     )
 
     db = SQLDatabase(engine)
 
+    vulnerable_mode = current_settings.vulnerable_sql_mode
+
     tools = [
         ListTablesTool(db=db),
         GetTableSchemaTool(db=db),
-        SafeSQLQueryTool(db=db, timeout_seconds=timeout_seconds),
+        SQLQueryTool(
+            db=db,
+            timeout_seconds=timeout_seconds,
+            vulnerable_mode=vulnerable_mode,
+        ),
+        GetCustomerTool(),
+        RegisterCustomerTool(),
     ]
 
+    if current_settings.vulnerable_sql_mode:
+       system_prompt = VULNERABLE_SYSTEM_PROMPT
+    else:
+       system_prompt = AGENT_SYSTEM_PROMPT
+ 
     agent_graph = create_react_agent(
-        model=llm,
-        tools=tools,
-        prompt=AGENT_SYSTEM_PROMPT,
-        checkpointer=_memory_saver,
+       model=llm,
+       tools=tools,
+       prompt=system_prompt,
+       checkpointer=_memory_saver,
     )
+
 
     logger.info("[AgentFactory] LangGraph ReAct SQL Agent đã sẵn sàng.")
     return agent_graph

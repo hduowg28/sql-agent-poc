@@ -9,6 +9,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
     database_url: str
 
@@ -22,6 +23,7 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     debug: bool = False
+    vulnerable_sql_mode: bool = False
 
 
 def get_settings() -> Settings:
