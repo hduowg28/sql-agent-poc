@@ -3,11 +3,15 @@ import { Header } from './components/Header';
 import { SuggestedPrompts } from './components/SuggestedPrompts';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
+import { VulnerableLab } from './components/VulnerableLab';
 import type { Message } from './types/chat';
 import { askQuestion, checkBackendHealth } from './services/api';
-import { Bot } from 'lucide-react';
+import { Bot, AlertTriangle, MessageSquare } from 'lucide-react';
+
+type ActiveTab = 'chat' | 'vulnerable';
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('chat');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -85,39 +89,72 @@ export const App: React.FC = () => {
         hasMessages={messages.length > 0}
       />
 
-      <div className="chat-container">
-        {messages.length === 0 ? (
-          <SuggestedPrompts onSelectPrompt={handleSendMessage} />
-        ) : (
-          messages.map((msg) => <ChatMessage key={msg.id} message={msg} />)
-        )}
-
-        {isLoading && (
-          <div className="message-wrapper assistant">
-            <div className="avatar assistant">
-              <Bot size={18} />
-            </div>
-            <div className="message-bubble" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-              <div className="typing-indicator">
-                <span style={{ fontSize: '0.85rem', color: '#9ca3af', marginRight: '0.4rem' }}>
-                  SQL Agent đang suy nghĩ & sinh truy vấn...
-                </span>
-                <div className="typing-dot"></div>
-                <div className="typing-dot"></div>
-                <div className="typing-dot"></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={chatBottomRef} />
+      {/* ── Tab Navigation ─────────────────────────────── */}
+      <div className="tab-nav">
+        <button
+          id="tab-chat"
+          className={`tab-nav-btn ${activeTab === 'chat' ? 'active' : ''}`}
+          onClick={() => setActiveTab('chat')}
+        >
+          <MessageSquare size={15} />
+          SQL Agent Chat
+        </button>
+        <button
+          id="tab-vulnerable"
+          className={`tab-nav-btn vulnerable ${activeTab === 'vulnerable' ? 'active' : ''}`}
+          onClick={() => setActiveTab('vulnerable')}
+        >
+          <AlertTriangle size={15} />
+          🔓 Vulnerable Lab
+          <span className="tab-nav-badge">Demo</span>
+        </button>
       </div>
 
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-        disabled={!isOnline}
-      />
+      {/* ── Chat View ──────────────────────────────────── */}
+      {activeTab === 'chat' && (
+        <>
+          <div className="chat-container">
+            {messages.length === 0 ? (
+              <SuggestedPrompts onSelectPrompt={handleSendMessage} />
+            ) : (
+              messages.map((msg) => <ChatMessage key={msg.id} message={msg} />)
+            )}
+
+            {isLoading && (
+              <div className="message-wrapper assistant">
+                <div className="avatar assistant">
+                  <Bot size={18} />
+                </div>
+                <div className="message-bubble" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                  <div className="typing-indicator">
+                    <span style={{ fontSize: '0.85rem', color: '#9ca3af', marginRight: '0.4rem' }}>
+                      SQL Agent đang suy nghĩ &amp; sinh truy vấn...
+                    </span>
+                    <div className="typing-dot"></div>
+                    <div className="typing-dot"></div>
+                    <div className="typing-dot"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={chatBottomRef} />
+          </div>
+
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            disabled={!isOnline}
+          />
+        </>
+      )}
+
+      {/* ── Vulnerable Lab View ────────────────────────── */}
+      {activeTab === 'vulnerable' && (
+        <div className="vuln-lab-wrapper">
+          <VulnerableLab />
+        </div>
+      )}
     </div>
   );
 };

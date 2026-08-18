@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
 
     security_lab: bool = True
+    vulnerable_mode: bool = True   # Bật để enable Vulnerable Lab endpoints (chỉ dùng cho demo)
     app_env: str = "development"
     debug: bool = False
 

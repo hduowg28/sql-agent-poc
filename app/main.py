@@ -92,9 +92,12 @@ def create_app() -> FastAPI:
     # Routers
     from app.api.chat import router as chat_router
     from app.api.customers import router as customers_router
+    from app.api.vulnerable import router as vulnerable_router
     application.include_router(chat_router, prefix="/api/v1")
     application.include_router(customers_router, prefix="/api/v1")
     application.include_router(customers_router, prefix="/api")
+    # Vulnerable Lab – luôn register router, guard check nằm trong từng endpoint
+    application.include_router(vulnerable_router, prefix="/api/v1")
 
     # Health check endpoint
     @application.get("/health", tags=["System"])

@@ -494,3 +494,681 @@ body {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Tab Navigation
+═══════════════════════════════════════════════════════════ */
+.tab-nav {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.tab-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.tab-nav-btn.active {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
+.tab-nav-btn.vulnerable.active {
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.tab-nav-btn.vulnerable:hover {
+  background: rgba(239, 68, 68, 0.06);
+  color: #fca5a5;
+}
+
+.tab-nav-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Vulnerable Lab Wrapper
+═══════════════════════════════════════════════════════════ */
+.vuln-lab-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Vulnerable Lab – Header
+═══════════════════════════════════════════════════════════ */
+.vuln-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.vuln-lab-header {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
+
+.vuln-lab-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.vuln-lab-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(245,158,11,0.25));
+  border: 1px solid rgba(239,68,68,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fca5a5;
+  flex-shrink: 0;
+}
+
+.vuln-lab-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #fca5a5, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.2rem;
+}
+
+.vuln-lab-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.vuln-lab-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.vuln-overview-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.vuln-overview-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid;
+}
+
+.vuln-overview-card.red {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.2);
+  color: #fca5a5;
+}
+
+.vuln-overview-card.amber {
+  background: rgba(245,158,11,0.08);
+  border-color: rgba(245,158,11,0.2);
+  color: #fcd34d;
+}
+
+.vuln-overview-card.green {
+  background: rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.2);
+  color: #6ee7b7;
+}
+
+.vuln-overview-card-icon {
+  opacity: 0.9;
+}
+
+.vuln-overview-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.vuln-overview-card-desc {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 0.1rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Vulnerable Lab – Panels
+═══════════════════════════════════════════════════════════ */
+.vuln-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.vuln-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vuln-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.vuln-panel-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vuln-panel-icon.red {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+}
+
+.vuln-panel-icon.amber {
+  background: rgba(245,158,11,0.15);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: #fcd34d;
+}
+
+.vuln-panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.vuln-panel-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Warning Banner
+═══════════════════════════════════════════════════════════ */
+.vuln-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.875rem;
+  border-radius: 8px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  color: #fcd34d;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.vuln-warning-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Tab Row (within panel)
+═══════════════════════════════════════════════════════════ */
+.vuln-tab-row {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(0,0,0,0.2);
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.vuln-tab-btn {
+  flex: 1;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.vuln-tab-btn.active {
+  background: rgba(239,68,68,0.15);
+  color: #fca5a5;
+}
+
+.vuln-tab-btn:hover:not(.active) {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Form Elements
+═══════════════════════════════════════════════════════════ */
+.vuln-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.vuln-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.vuln-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vuln-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.vuln-label-danger {
+  color: #fca5a5;
+  font-size: 0.95rem;
+}
+
+.vuln-label-hint {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-style: italic;
+  font-family: var(--font-sans);
+}
+
+.vuln-input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(0,0,0,0.3);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.vuln-input:focus {
+  border-color: rgba(99,102,241,0.4);
+}
+
+.vuln-input.danger {
+  border-color: rgba(239,68,68,0.3);
+  background: rgba(239,68,68,0.05);
+}
+
+.vuln-input.danger:focus {
+  border-color: rgba(239,68,68,0.5);
+}
+
+.vuln-textarea {
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(0,0,0,0.3);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+}
+
+.vuln-textarea.danger {
+  border-color: rgba(239,68,68,0.3);
+  background: rgba(239,68,68,0.05);
+}
+
+.vuln-textarea:focus {
+  border-color: rgba(99,102,241,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Payload Presets
+═══════════════════════════════════════════════════════════ */
+.vuln-payload-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.vuln-preset-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vuln-preset-btn {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  border: 1px solid rgba(239,68,68,0.25);
+  background: rgba(239,68,68,0.06);
+  color: #fca5a5;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.vuln-preset-btn:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Execute Buttons
+═══════════════════════════════════════════════════════════ */
+.vuln-execute-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 12px rgba(220,38,38,0.3);
+}
+
+.vuln-execute-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(220,38,38,0.4);
+}
+
+.vuln-execute-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vuln-execute-btn.amber {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 2px 12px rgba(217,119,6,0.3);
+}
+
+.vuln-execute-btn.amber:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(217,119,6,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Error Message
+═══════════════════════════════════════════════════════════ */
+.vuln-error-msg {
+  padding: 0.6rem 0.875rem;
+  border-radius: 8px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #fca5a5;
+  font-size: 0.825rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Result Section
+═══════════════════════════════════════════════════════════ */
+.vuln-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-color);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.vuln-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vuln-result-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Badge */
+.vuln-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.vuln-badge.danger {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+}
+
+.vuln-badge.safe {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.25);
+  color: #6ee7b7;
+}
+
+/* Injection Alert */
+.vuln-injection-alert {
+  padding: 0.6rem 0.875rem;
+  border-radius: 8px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.vuln-injection-alert code {
+  font-family: var(--font-mono);
+  background: rgba(0,0,0,0.3);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.78rem;
+}
+
+/* Action Taken */
+.vuln-action-taken {
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+}
+
+.vuln-action-taken.danger {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: #fca5a5;
+}
+
+.vuln-action-taken.safe {
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  color: #6ee7b7;
+}
+
+.vuln-analysis-pre {
+  margin-top: 0.4rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+}
+
+/* Sandbox note */
+.vuln-sandbox-note {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #6ee7b7;
+  opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Collapsible
+═══════════════════════════════════════════════════════════ */
+.vuln-collapsible {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid;
+}
+
+.vuln-collapsible.accent-red { border-color: rgba(239,68,68,0.2); }
+.vuln-collapsible.accent-green { border-color: rgba(16,185,129,0.2); }
+.vuln-collapsible.accent-blue { border-color: rgba(99,102,241,0.2); }
+
+.vuln-collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.875rem;
+  background: rgba(0,0,0,0.25);
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.vuln-collapsible-header:hover {
+  background: rgba(0,0,0,0.35);
+  color: var(--text-primary);
+}
+
+.vuln-collapsible-body {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Code Blocks
+═══════════════════════════════════════════════════════════ */
+.vuln-code-block {
+  padding: 0.75rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.vuln-code-block.danger {
+  background: rgba(30,5,5,0.8);
+  color: #fca5a5;
+}
+
+.vuln-code-block.safe {
+  background: rgba(5,20,15,0.8);
+  color: #6ee7b7;
+}
+
+.vuln-code-block.neutral {
+  background: #090d16;
+  color: #38bdf8;
+}
+
+/* Spin animation for loading */
+.spin {
+  animation: spinAnim 0.8s linear infinite;
+}
+
+@keyframes spinAnim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Attack Flow Diagram */
+.vuln-attack-flow {
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  background: rgba(124,58,237,0.06);
+  border: 1px solid rgba(168,85,247,0.2);
+  color: #c4b5fd;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+
